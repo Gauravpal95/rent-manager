@@ -59,7 +59,7 @@ st.markdown("""
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
     }
     
-    /* GEMINI STYLE SIDEBAR NAVIGATION (Vertical & Smooth Rounded Rectangles) */
+    /* GEMINI STYLE SIDEBAR NAVIGATION */
     [data-testid="stSidebar"] {
         background-color: #080e1a;
         border-right: 1px solid rgba(52, 211, 153, 0.1);
@@ -174,7 +174,7 @@ if "late_fee_rule" not in st.session_state:
 
 
 # ==========================================
-# 🔐 4. SECURE AUTHENTICATION (ONE PAGE)
+# 🔐 4. SECURE PASSWORD AUTHENTICATION (OTP REMOVED)
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -189,26 +189,21 @@ if not st.session_state.logged_in:
         st.subheader("🔒 Secure Login Gateway")
         
         with st.form("combined_auth_form"):
-            phone_input = st.text_input("Enter 10-digit Phone Number", placeholder="9876543210")
             portal_choice = st.selectbox("Select Portal Mode", ["Tenant Portal", "Owner Dashboard"])
-            otp_code = st.text_input("Enter 4-digit OTP", type="password", placeholder="1234")
+            password_input = st.text_input("Enter Portal Password", type="password", placeholder="Enter admin123")
             
-            st.markdown("<p style='font-size: 12px; color: #94A3B8; margin-top: 5px;'>💡 Use test OTP: <b>1234</b></p>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 12px; color: #94A3B8; margin-top: 5px;'>💡 Default Password: <b>admin123</b></p>", unsafe_allow_html=True)
             
             submit_login = st.form_submit_button("Authenticate & Enter", use_container_width=True)
             
             if submit_login:
-                if len(phone_input) == 10 and phone_input.isdigit():
-                    if otp_code == "1234":
-                        st.session_state.logged_in = True
-                        st.session_state.role = portal_choice
-                        st.session_state.phone = phone_input
-                        st.success("Login Successful!")
-                        st.rerun()
-                    else:
-                        st.error("Invalid OTP. Please enter '1234'.")
+                if password_input == "admin123":
+                    st.session_state.logged_in = True
+                    st.session_state.role = portal_choice
+                    st.success("Login Successful!")
+                    st.rerun()
                 else:
-                    st.error("Please enter a valid 10-digit phone number.")
+                    st.error("Invalid Password. Please enter 'admin123'.")
                     
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
@@ -303,7 +298,7 @@ if st.session_state.role == "Tenant Portal":
                     if st.button("Download Receipt", key=f"rec_{selected_tenant_room}_{month_name}"):
                         receipt_text = f"""
 ========================================
-      RENT MANAGER OFFICIAL RECEIPT     
+      RENT MANAGER OFFICIAL RECEIPT    
 ========================================
 Room Number  : {selected_tenant_room}
 Tenant Name  : {room_data['tenant']}
@@ -421,7 +416,7 @@ Date of Issue: {date.today()}
 
 
 # ==========================================
-# 📊 6. OWNER PORTAL INTERFACE (ACTIONS & BILLING MERGED INTO PORTFOLIO OVERVIEW)
+# 📊 6. OWNER PORTAL INTERFACE
 # ==========================================
 else:
     if st.session_state.assigning_room:
@@ -466,7 +461,6 @@ else:
                 st.rerun()
         st.stop()
 
-    # Sidebar Navigation for Owner (Gemini Style Vertical Options - Actions & Billing merged into Portfolio Overview)
     with st.sidebar:
         st.markdown("### 🏢 RENT MANAGER")
         st.markdown("<p style='font-size:11px; color:#34D399; margin-top:-10px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
@@ -484,7 +478,6 @@ else:
             st.session_state.logged_in = False
             st.rerun()
 
-    # Calculate Master Financial Metrics
     total_collected = 0
     total_outstanding = 0
     revenue_by_month = {}
@@ -502,7 +495,6 @@ else:
     occupied_count = sum(1 for d in st.session_state.rooms.values() if d["status"] == "Occupied")
     total_rooms = len(st.session_state.rooms)
 
-    # Top Metric Cards
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
     with col_m1:
         st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">TOTAL REVENUE</p><h3 style="color: #34D399; margin:0;">₹{total_collected}</h3></div>', unsafe_allow_html=True)
@@ -519,7 +511,6 @@ else:
 
     if owner_menu == "📈 Portfolio Overview & Actions":
         
-        # --- SECTION 1: MASTER ACTIONS & BILLING ENGINE (PLACED AT TOP OF PORTFOLIO) ---
         st.markdown("### ⚙️ Master Property Actions & Billing Engine")
         
         with st.expander("📅 1-Click Bulk Invoice Generator", expanded=False):
@@ -546,7 +537,6 @@ else:
                         st.warning(f"Invoices for {bulk_month} already exist or no rooms occupied.")
                     st.rerun()
 
-        # Owner Tools Row (Expenses, Notices, Late Fee)
         col_act1, col_act2, col_act3 = st.columns(3)
         with col_act1:
             with st.expander("💸 Log Property Expense", expanded=False):
@@ -612,7 +602,6 @@ else:
 
         st.markdown("<hr style='border-color: rgba(52,211,153,0.2); margin: 25px 0;'>", unsafe_allow_html=True)
 
-        # --- SECTION 2: PORTFOLIO OVERVIEW & MANAGED ROOMS ---
         st.markdown("### 🏢 Managed Property Portfolio Overview")
         r_cols = st.columns(len(st.session_state.rooms) if len(st.session_state.rooms) > 0 else 1)
         
