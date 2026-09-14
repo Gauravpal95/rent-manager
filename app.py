@@ -128,14 +128,27 @@ if "late_fee_rule" not in st.session_state:
 
 
 # ==========================================
-# 🔐 4. SECURE PASSWORD AUTHENTICATION
+# 🔐 4. SECURE PASSWORD AUTHENTICATION WITH WELCOME BANNER
 # ==========================================
 if not st.session_state.logged_in:
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; color: #34D399; font-weight: 900; font-size: 3.5rem; margin-bottom: 0;'>RENT MANAGER</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #34D399; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; margin-top: 5px; margin-bottom: 10px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.1rem;'>The Elite Property & Tenant Ecosystem</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # 🌟 Stylish Welcome Banner (Replaces the empty notch with style!)
+    col_w1, col_w2, col_w3 = st.columns([1, 2, 1])
+    with col_w2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(30, 41, 59, 0.7) 100%); 
+                    border: 1px solid rgba(52, 211, 153, 0.3); padding: 14px 20px; border-radius: 12px; 
+                    text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.4); margin-bottom: 25px;">
+            <p style="color: #34D399; font-size: 15px; font-weight: bold; margin: 0; letter-spacing: 0.5px;">
+                👋 Welcome to Rent Manager Portal — Please authenticate below to proceed.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
