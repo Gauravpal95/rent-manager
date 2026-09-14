@@ -13,11 +13,10 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 2. COMPUTER SCIENCE EXPO THEME CSS (GRID & AMBIENT DESIGN)
+# 🎨 2. PROFESSIONAL DESIGN & CYBER-TECH CSS
 # ==========================================
 st.markdown("""
     <style>
-    /* Professional CS Project Expo Cyber-Tech Background */
     .main {
         background-color: #030712;
         background-image: 
@@ -31,24 +30,21 @@ st.markdown("""
     .stApp {
         background-color: #030712;
     }
-    
-    /* Frosted Glassmorphism Cards */
     .card {
         background: rgba(15, 23, 42, 0.85);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         padding: 24px;
         border-radius: 16px;
-        border: 1px solid rgba(52, 211, 153, 0.15);
+        border: 1px solid rgba(52, 211, 153, 0.2);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
         margin-bottom: 20px;
         transition: transform 0.2s ease, border-color 0.2s ease;
     }
     .card:hover {
-        border-color: rgba(52, 211, 153, 0.4);
+        border-color: rgba(52, 211, 153, 0.5);
+        box-shadow: 0 12px 35px rgba(16, 185, 129, 0.15);
     }
-    
-    /* Tech Metric Boxes */
     .metric-box {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
         backdrop-filter: blur(12px);
@@ -58,59 +54,18 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
     }
-    
-    /* GEMINI STYLE SIDEBAR NAVIGATION */
     [data-testid="stSidebar"] {
         background-color: #080e1a;
         border-right: 1px solid rgba(52, 211, 153, 0.1);
         padding-top: 20px;
     }
-    
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {
-        font-size: 14px;
-        font-weight: 500;
-    }
-    [data-testid="stSidebar"] .stRadio input[type="radio"] {
-        display: none;
-    }
-    
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
-        background-color: transparent;
-        padding: 10px 16px;
-        border-radius: 10px;
-        color: #94A3B8;
-        margin-bottom: 4px;
-        width: 100%;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        border: 1px solid transparent;
-    }
-    
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
-        background-color: rgba(30, 41, 59, 0.6);
-        color: #F8FAFC;
-    }
-    
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] input[checked] + div {
-        background-color: rgba(52, 211, 153, 0.15) !important;
-        border-color: rgba(52, 211, 153, 0.4) !important;
-        color: #34D399 !important;
-    }
-
-    /* Custom Styled Inputs */
     .stTextInput>div>div>input, .stSelectbox>div>div>select, .stNumberInput>div>div>input {
         background-color: rgba(15, 23, 42, 0.8) !important;
         color: #ffffff !important;
-        border: 1px solid rgba(52, 211, 153, 0.2) !important;
+        border: 1px solid rgba(52, 211, 153, 0.25) !important;
         border-radius: 10px !important;
         padding: 10px 14px !important;
     }
-    .stTextInput>div>div>input:focus, .stSelectbox>div>div>select:focus {
-        border-color: #34D399 !important;
-        box-shadow: 0 0 12px rgba(52, 211, 153, 0.3) !important;
-    }
-    
-    /* Status Badges */
     .badge-paid { background-color: rgba(6, 78, 59, 0.7); color: #34D399; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(52, 211, 153, 0.4); }
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
@@ -122,7 +77,6 @@ st.markdown("""
 # ==========================================
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "role" not in st.session_state: st.session_state.role = ""
-if "phone" not in st.session_state: st.session_state.phone = ""
 if "assigning_room" not in st.session_state: st.session_state.assigning_room = None
 
 if "rooms" not in st.session_state:
@@ -174,7 +128,7 @@ if "late_fee_rule" not in st.session_state:
 
 
 # ==========================================
-# 🔐 4. SECURE PASSWORD AUTHENTICATION (OTP REMOVED)
+# 🔐 4. SECURE PASSWORD AUTHENTICATION
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
