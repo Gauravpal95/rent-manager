@@ -25,7 +25,6 @@ complaints_table = local_db.table("complaints")
 expenses_table = local_db.table("expenses")
 settings_table = local_db.table("settings")
 
-# Initialize default records if empty
 if not rooms_table.all():
     rooms_table.insert({
         "Room 101": {
@@ -64,7 +63,6 @@ if not settings_table.all():
         "late_fee_rule": 100
     })
 
-# Bind with Session State
 if "rooms" not in st.session_state:
     st.session_state.rooms = rooms_table.all()[0]
 if "complaints" not in st.session_state:
@@ -94,7 +92,7 @@ def sync_to_db():
     })
 
 # ==========================================
-# 🎨 3. PROFESSIONAL DESIGN & GEMINI-STYLE CSS
+# 🎨 3. CSS DESIGN (Gemini Sidebar & Centered QR)
 # ==========================================
 st.markdown("""
     <style>
@@ -113,7 +111,6 @@ st.markdown("""
     .card {
         background: rgba(15, 23, 42, 0.85);
         backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
         padding: 24px;
         border-radius: 16px;
         border: 1px solid rgba(52, 211, 153, 0.2);
@@ -136,7 +133,7 @@ st.markdown("""
         padding-top: 20px;
     }
     
-    /* 🌟 Gemini-Style Rounded Rectangle Radio Buttons for Sidebar */
+    /* Gemini-Style Sidebar Navigation */
     [data-testid="stSidebar"] .stRadio > div {
         gap: 10px;
     }
@@ -173,7 +170,7 @@ st.markdown("""
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
     
-    /* 🌟 Absolute Bulletproof Centering for QR Code */
+    /* 🌟 Perfect Centered HTML QR Container */
     .qr-container {
         display: flex;
         flex-direction: column;
@@ -186,23 +183,6 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         text-align: center;
         width: 100%;
-    }
-    
-    /* Force Streamlit image wrapper to absolute center */
-    [data-testid="stImage"] {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        width: 100% !important;
-    }
-    [data-testid="stImage"] > div {
-        margin: 0 auto !important;
-        text-align: center !important;
-    }
-    [data-testid="stImage"] img {
-        display: block !important;
-        margin: 0 auto !important;
-        border-radius: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -345,21 +325,25 @@ if st.session_state.role == "Tenant Portal":
         with col_r:
             st.markdown("### ⚡ Live UPI Gateway & Verified QR")
             
-            # 🌟 Perfectly Centered QR Display Block
-            st.markdown('<div class="qr-container">', unsafe_allow_html=True)
-            st.markdown("<p style='color: #34D399; font-weight: bold; margin-bottom: 10px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>", unsafe_allow_html=True)
-            
+            # 🌟 Bulletproof Centered HTML QR Block
             if os.path.exists("upi_qr.png"):
-                st.image("upi_qr.png", width=210)
+                import base64
+                with open("upi_qr.png", "rb") as img_file:
+                    encoded_img = base64.b64encode(img_file.read()).decode()
+                
+                st.markdown(f"""
+                <div class="qr-container">
+                    <p style='color: #34D399; font-weight: bold; margin-bottom: 12px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>
+                    <div style="display: flex; justify-content: center; width: 100%;">
+                        <img src="data:image/png;base64,{encoded_img}" width="200" style="border-radius: 12px; display: block; margin: 0 auto; background: white; padding: 4px;" />
+                    </div>
+                    <p style="font-size: 12px; color: #94A3B8; margin: 14px 0 2px 0;">Verified UPI ID:</p>
+                    <p style="font-size: 14px; color: #FFFFFF; margin: 0; font-family: monospace; font-weight: bold;">7211197425.upi.circle@ibl</p>
+                </div>
+                """, unsafe_allow_html=True)
             else:
                 st.warning("⚠️ 'upi_qr.png' not found in folder.")
-                st.markdown(f'<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=7211197425.upi.circle@ibl&am={total_with_late}&cu=INR" width="180" style="border-radius: 8px; padding: 5px; background: white;">', unsafe_allow_html=True)
-
-            st.markdown("""
-                <p style="font-size: 12px; color: #94A3B8; margin: 12px 0 2px 0;">Verified UPI ID:</p>
-                <p style="font-size: 14px; color: #FFFFFF; margin: 0; font-family: monospace; font-weight: bold;">7211197425.upi.circle@ibl</p>
-            </div>
-            """, unsafe_allow_html=True)
+                st.markdown(f'<div class="qr-container"><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=7211197425.upi.circle@ibl&am={total_with_late}&cu=INR" width="180" style="border-radius: 8px; display: block; margin: 0 auto; background: white; padding: 5px;" /></div>', unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             proof_file = st.file_uploader("Upload Payment Screenshot Proof", type=["png", "jpg", "jpeg"])
