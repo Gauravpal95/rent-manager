@@ -82,18 +82,12 @@ if "notices" not in st.session_state: st.session_state.notices = settings_data["
 if "late_fee_rule" not in st.session_state: st.session_state.late_fee_rule = settings_data["late_fee_rule"]
 
 def sync_to_db():
-    """Sync all session data to local TinyDB JSON file safely"""
     rooms_table.truncate()
     rooms_table.insert(st.session_state.rooms)
-    
     complaints_table.truncate()
-    for c in st.session_state.complaints:
-        complaints_table.insert(c)
-        
+    for c in st.session_state.complaints: complaints_table.insert(c)
     expenses_table.truncate()
-    for e in st.session_state.expenses:
-        expenses_table.insert(e)
-        
+    for e in st.session_state.expenses: expenses_table.insert(e)
     settings_table.truncate()
     settings_table.insert({
         "passwords": st.session_state.passwords,
@@ -152,11 +146,6 @@ st.markdown("""
     .badge-paid { background-color: rgba(6, 78, 59, 0.7); color: #34D399; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(52, 211, 153, 0.4); }
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
-    
-    /* Custom Red Danger Button styling */
-    div.stButton > button[kind="secondary"] {
-        border-color: rgba(248, 113, 113, 0.4);
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -167,7 +156,7 @@ if "assigning_room" not in st.session_state: st.session_state.assigning_room = N
 if "move_out_requests" not in st.session_state: st.session_state.move_out_requests = []
 
 # ==========================================
-# 🔐 4. SECURE AUTHENTICATION & EXPANDABLE REGISTRATION
+# 🔐 4. SECURE AUTHENTICATION & REGISTRATION
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -296,12 +285,20 @@ if st.session_state.role == "Tenant Portal":
             """, unsafe_allow_html=True)
 
         with col_r:
-            st.markdown("### ⚡ Secure UPI Gateway & Proof")
-            st.markdown(f"""
-            <div class="card" style="text-align: center;">
-                <p style="color: #34D399; font-weight: bold; margin-bottom: 10px;">SCAN & PAY VIA UPI</p>
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=owner@upi&am={total_with_late}&cu=INR" width="150" style="border-radius: 8px; padding: 5px; background: white;">
-                <p style="font-size: 12px; color: #94A3B8; margin-top: 10px;">VPA: owner.properties@upi</p>
+            st.markdown("### ⚡ Live UPI Gateway & Verified QR")
+            
+            # 🌟 Display Actual Live QR Code Image and Verified UPI ID
+            if os.path.exists("upi_qr.png"):
+                st.image("upi_qr.png", width=200, caption="Scan & Pay via any UPI App")
+            else:
+                # Fallback if image file not yet placed
+                st.warning("⚠️ 'upi_qr.png' not found in folder. Please place your cropped QR code image as 'upi_qr.png'.")
+                st.markdown(f'<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=7211197425.upi.circle@ibl&am={total_with_late}&cu=INR" width="150" style="border-radius: 8px; padding: 5px; background: white;">', unsafe_allow_html=True)
+
+            st.markdown("""
+            <div class="card" style="padding: 12px; margin-top: 10px; text-align: center;">
+                <p style="font-size: 13px; color: #34D399; margin: 0; font-weight: bold;">Verified UPI ID:</p>
+                <p style="font-size: 15px; color: #FFFFFF; margin: 5px 0 0 0; font-family: monospace;">7211197425.upi.circle@ibl</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -331,6 +328,7 @@ Tenant Name  : {room_data['tenant']}
 Billing Month: {month_name}
 Amount Paid  : ₹{m_info['total']}
 Status       : VERIFIED & PAID (Database Synced)
+UPI ID Used  : 7211197425.upi.circle@ibl
 Receipt ID   : {m_info['receipt']}
 Date of Issue: {date.today()}
 ========================================
@@ -614,8 +612,7 @@ else:
                     </div>
                     """, unsafe_allow_html=True)
                 with col_d2:
-                    st.write("") # alignment spacing
-                    # 🌟 Red Highlighted Danger Button to Remove Tenant
+                    st.write("")
                     if st.button("🗑️ Remove Tenant", key=f"del_tenant_{t_item['Room No.']}", help="Warning: This will clear tenant data and mark room vacant."):
                         room_key = t_item['Room No.']
                         if room_key in st.session_state.rooms:
