@@ -146,6 +146,19 @@ st.markdown("""
     .badge-paid { background-color: rgba(6, 78, 59, 0.7); color: #34D399; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(52, 211, 153, 0.4); }
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
+    
+    .qr-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        text-align: center;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -287,21 +300,22 @@ if st.session_state.role == "Tenant Portal":
         with col_r:
             st.markdown("### ⚡ Live UPI Gateway & Verified QR")
             
-            # 🌟 Display Actual Live QR Code Image and Verified UPI ID
+            st.markdown('<div class="qr-container">', unsafe_allow_html=True)
+            st.markdown("<p style='color: #34D399; font-weight: bold; margin-bottom: 10px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>", unsafe_allow_html=True)
+            
             if os.path.exists("upi_qr.png"):
-                st.image("upi_qr.png", width=200, caption="Scan & Pay via any UPI App")
+                st.image("upi_qr.png", width=220)
             else:
-                # Fallback if image file not yet placed
-                st.warning("⚠️ 'upi_qr.png' not found in folder. Please place your cropped QR code image as 'upi_qr.png'.")
-                st.markdown(f'<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=7211197425.upi.circle@ibl&am={total_with_late}&cu=INR" width="150" style="border-radius: 8px; padding: 5px; background: white;">', unsafe_allow_html=True)
+                st.warning("⚠️ 'upi_qr.png' not found. Please place your QR image in the folder.")
+                st.markdown(f'<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=7211197425.upi.circle@ibl&am={total_with_late}&cu=INR" width="180" style="border-radius: 8px; padding: 5px; background: white;">', unsafe_allow_html=True)
 
             st.markdown("""
-            <div class="card" style="padding: 12px; margin-top: 10px; text-align: center;">
-                <p style="font-size: 13px; color: #34D399; margin: 0; font-weight: bold;">Verified UPI ID:</p>
-                <p style="font-size: 15px; color: #FFFFFF; margin: 5px 0 0 0; font-family: monospace;">7211197425.upi.circle@ibl</p>
+                <p style="font-size: 12px; color: #94A3B8; margin: 10px 0 2px 0;">Verified UPI ID:</p>
+                <p style="font-size: 14px; color: #FFFFFF; margin: 0; font-family: monospace; font-weight: bold;">7211197425.upi.circle@ibl</p>
             </div>
             """, unsafe_allow_html=True)
             
+            st.markdown("<br>", unsafe_allow_html=True)
             proof_file = st.file_uploader("Upload Payment Screenshot Proof", type=["png", "jpg", "jpeg"])
             if proof_file:
                 st.success("Payment proof uploaded successfully to database!")
@@ -448,7 +462,7 @@ else:
         
         owner_menu = st.radio(
             "Owner Navigation",
-            ["📈 Portfolio Overview & Actions", "📇 Tenant Directory"],
+            ["📈 Portfolio Overview & Actions", "⚡ Make Bill / Add Bill", "📇 Tenant Directory"],
             label_visibility="collapsed"
         )
         
@@ -585,6 +599,63 @@ else:
                         c['status'] = new_ticket_status
                         sync_to_db()
                         st.rerun()
+
+    # 🌟 NEW DEDICATED SECTION: Make Bill / Add Bill
+    elif owner_menu == "⚡ Make Bill / Add Bill":
+        st.markdown("### ⚡ Dynamic Monthly Bill Generator")
+        st.caption("Select a room, customize the itemized utility and rent charges, and instantly dispatch the bill to the tenant's ledger.")
+
+        occupied_rooms_list = [r for r, d in st.session_state.rooms.items() if d["status"] == "Occupied"]
+        
+        if not occupied_rooms_list:
+            st.warning("No occupied rooms available to generate bills. Please assign a tenant first.")
+        else:
+            with st.form("make_custom_bill_form"):
+                selected_room_for_bill = st.selectbox("Select Target Room", occupied_rooms_list)
+                curr_room_info = st.session_state.rooms[selected_room_for_bill]
+                
+                st.info(f"**Tenant Assigned:** {curr_room_info['tenant']} (Phone: {curr_room_info['phone']})")
+
+                bc1, bc2 = st.columns(2)
+                with bc1:
+                    bill_month = st.selectbox("Billing Month", ["July 2026", "August 2026", "September 2026", "October 2026", "November 2026", "December 2026"])
+                with bc2:
+                    bill_year = st.selectbox("Billing Year", [2026, 2027])
+
+                st.markdown("#### Configure Itemized Charges (₹):")
+                ic1, ic2, ic3 = st.columns(3)
+                with ic1:
+                    custom_rent = st.number_input("Base Room Rent", value=curr_room_info['rent'])
+                with ic2:
+                    custom_light = st.number_input("Light / Electricity Bill", value=curr_room_info['light'])
+                with ic3:
+                    custom_maint = st.number_input("Maintenance Charges", value=curr_room_info['maint'])
+
+                total_calculated_bill = custom_rent + custom_light + custom_maint
+                st.markdown(f"""
+                <div class="card" style="padding: 12px; margin-top: 10px; text-align: center; border: 1px solid #34D399;">
+                    <span style="color: #94A3B8; font-size: 14px;">Total Invoice Amount to be Generated:</span><br>
+                    <b style="color: #34D399; font-size: 22px;">₹{total_calculated_bill}</b>
+                </div>
+                """, unsafe_allow_html=True)
+
+                submit_custom_bill = st.form_submit_button("🚀 Generate & Push Bill to Tenant Ledger", use_container_width=True)
+
+                if submit_custom_bill:
+                    full_month_key = f"{bill_month}" # e.g. July 2026
+                    # Update room default rates as well for future convenience
+                    curr_room_info['rent'] = custom_rent
+                    curr_room_info['light'] = custom_light
+                    curr_room_info['maint'] = custom_maint
+
+                    # Push into history ledger
+                    curr_room_info['history'][full_month_key] = {
+                        "total": total_calculated_bill,
+                        "status": "Pending",
+                        "receipt": None
+                    }
+                    sync_to_db()
+                    st.success(f"Success! Bill of ₹{total_calculated_bill} for {full_month_key} successfully dispatched to {selected_room_for_bill} ({curr_room_info['tenant']})!")
 
     elif owner_menu == "📇 Tenant Directory":
         st.markdown("### 📇 Master Tenant Directory & Database Sync")
