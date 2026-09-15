@@ -147,6 +147,7 @@ st.markdown("""
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
     
+    /* 🌟 Perfect Centered Professional QR Layout Container */
     .qr-container {
         display: flex;
         flex-direction: column;
@@ -155,9 +156,17 @@ st.markdown("""
         background: rgba(15, 23, 42, 0.9);
         border: 1px solid rgba(52, 211, 153, 0.3);
         border-radius: 16px;
-        padding: 20px;
+        padding: 22px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         text-align: center;
+        width: 100%;
+    }
+    .qr-image-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin: 10px 0;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -300,17 +309,20 @@ if st.session_state.role == "Tenant Portal":
         with col_r:
             st.markdown("### ⚡ Live UPI Gateway & Verified QR")
             
+            # 🌟 Perfectly Centered QR Display Block
             st.markdown('<div class="qr-container">', unsafe_allow_html=True)
-            st.markdown("<p style='color: #34D399; font-weight: bold; margin-bottom: 10px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #34D399; font-weight: bold; margin-bottom: 8px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>", unsafe_allow_html=True)
             
             if os.path.exists("upi_qr.png"):
-                st.image("upi_qr.png", width=220)
+                st.markdown('<div class="qr-image-wrapper">', unsafe_allow_html=True)
+                st.image("upi_qr.png", width=210)
+                st.markdown('</div>', unsafe_allow_html=True)
             else:
-                st.warning("⚠️ 'upi_qr.png' not found. Please place your QR image in the folder.")
+                st.warning("⚠️ 'upi_qr.png' not found in folder.")
                 st.markdown(f'<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=7211197425.upi.circle@ibl&am={total_with_late}&cu=INR" width="180" style="border-radius: 8px; padding: 5px; background: white;">', unsafe_allow_html=True)
 
             st.markdown("""
-                <p style="font-size: 12px; color: #94A3B8; margin: 10px 0 2px 0;">Verified UPI ID:</p>
+                <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 2px 0;">Verified UPI ID:</p>
                 <p style="font-size: 14px; color: #FFFFFF; margin: 0; font-family: monospace; font-weight: bold;">7211197425.upi.circle@ibl</p>
             </div>
             """, unsafe_allow_html=True)
@@ -600,7 +612,6 @@ else:
                         sync_to_db()
                         st.rerun()
 
-    # 🌟 NEW DEDICATED SECTION: Make Bill / Add Bill
     elif owner_menu == "⚡ Make Bill / Add Bill":
         st.markdown("### ⚡ Dynamic Monthly Bill Generator")
         st.caption("Select a room, customize the itemized utility and rent charges, and instantly dispatch the bill to the tenant's ledger.")
@@ -642,13 +653,11 @@ else:
                 submit_custom_bill = st.form_submit_button("🚀 Generate & Push Bill to Tenant Ledger", use_container_width=True)
 
                 if submit_custom_bill:
-                    full_month_key = f"{bill_month}" # e.g. July 2026
-                    # Update room default rates as well for future convenience
+                    full_month_key = f"{bill_month}"
                     curr_room_info['rent'] = custom_rent
                     curr_room_info['light'] = custom_light
                     curr_room_info['maint'] = custom_maint
 
-                    # Push into history ledger
                     curr_room_info['history'][full_month_key] = {
                         "total": total_calculated_bill,
                         "status": "Pending",
