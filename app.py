@@ -43,10 +43,7 @@ if not rooms_table.all():
             "emergency_contact": "", "security_deposit": 0,
             "rent": 6000, "light": 400, "maint": 100,
             "doc": None, "owner_doc": None,
-            "history": {
-                "May 2026": {"total": 6500, "status": "Paid", "receipt": "REC-102-MAY"},
-                "June 2026": {"total": 6500, "status": "Pending", "receipt": None}
-            }
+            "history": {}
         }
     })
 
@@ -97,7 +94,7 @@ def sync_to_db():
     })
 
 # ==========================================
-# 🎨 3. PROFESSIONAL DESIGN & CYBER-TECH CSS
+# 🎨 3. PROFESSIONAL DESIGN & GEMINI-STYLE CSS
 # ==========================================
 st.markdown("""
     <style>
@@ -112,6 +109,7 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
     .stApp { background-color: #030712; }
+    
     .card {
         background: rgba(15, 23, 42, 0.85);
         backdrop-filter: blur(16px);
@@ -131,11 +129,39 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
     }
+    
     [data-testid="stSidebar"] {
         background-color: #080e1a;
-        border-right: 1px solid rgba(52, 211, 153, 0.1);
+        border-right: 1px solid rgba(52, 211, 153, 0.15);
         padding-top: 20px;
     }
+    
+    /* 🌟 Gemini-Style Rounded Rectangle Radio Buttons for Sidebar */
+    [data-testid="stSidebar"] .stRadio > div {
+        gap: 10px;
+    }
+    [data-testid="stSidebar"] .stRadio label {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(52, 211, 153, 0.25);
+        border-radius: 14px;
+        padding: 12px 18px !important;
+        margin-bottom: 8px;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        color: #E2E8F0 !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background: rgba(30, 41, 59, 0.9);
+        border-color: rgba(52, 211, 153, 0.6);
+        box-shadow: 0 6px 20px rgba(52, 211, 153, 0.15);
+        transform: translateY(-1px);
+    }
+
     .stTextInput>div>div>input, .stSelectbox>div>div>select, .stNumberInput>div>div>input {
         background-color: rgba(15, 23, 42, 0.8) !important;
         color: #ffffff !important;
@@ -147,7 +173,7 @@ st.markdown("""
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
     
-    /* 🌟 Absolute Center Alignment for QR Code & Container */
+    /* 🌟 Absolute Bulletproof Centering for QR Code */
     .qr-container {
         display: flex;
         flex-direction: column;
@@ -156,20 +182,25 @@ st.markdown("""
         background: rgba(15, 23, 42, 0.9);
         border: 1px solid rgba(52, 211, 153, 0.3);
         border-radius: 16px;
-        padding: 22px;
+        padding: 24px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         text-align: center;
         width: 100%;
     }
-    /* Force Streamlit image container to center */
+    
+    /* Force Streamlit image wrapper to absolute center */
     [data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+    [data-testid="stImage"] > div {
         margin: 0 auto !important;
+        text-align: center !important;
     }
     [data-testid="stImage"] img {
-        display: block;
+        display: block !important;
         margin: 0 auto !important;
         border-radius: 10px;
     }
@@ -268,7 +299,7 @@ if st.session_state.role == "Tenant Portal":
         
         selected_tenant_room = st.selectbox("Select Your Assigned Room", occupied_rooms)
         
-        st.markdown("<p style='font-size: 12px; color: #94A3B8; margin-top: 15px;'>NAVIGATION</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 13px; font-weight: bold; color: #94A3B8; margin-top: 20px; letter-spacing: 1px;'>NAVIGATION</p>", unsafe_allow_html=True)
         tenant_menu = st.radio(
             "Tenant Navigation",
             ["💳 Billing & Payments", "🛠️ Maintenance & Issues", "👤 Profile & Lease"],
@@ -316,7 +347,7 @@ if st.session_state.role == "Tenant Portal":
             
             # 🌟 Perfectly Centered QR Display Block
             st.markdown('<div class="qr-container">', unsafe_allow_html=True)
-            st.markdown("<p style='color: #34D399; font-weight: bold; margin-bottom: 8px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #34D399; font-weight: bold; margin-bottom: 10px; font-size: 14px;'>SCAN & PAY VIA ANY UPI APP</p>", unsafe_allow_html=True)
             
             if os.path.exists("upi_qr.png"):
                 st.image("upi_qr.png", width=210)
@@ -336,19 +367,22 @@ if st.session_state.role == "Tenant Portal":
                 st.success("Payment proof uploaded successfully to database!")
 
         st.markdown("### 📜 Month-wise Payment Ledger & Official Receipts")
-        for month_name, m_info in room_data["history"].items():
-            cols = st.columns([3, 1, 1])
-            with cols[0]:
-                st.markdown(f"**{month_name}**<br><span style='color: #94A3B8; font-size: 13px;'>Total Invoice Amount: ₹{m_info['total']}</span>", unsafe_allow_html=True)
-            with cols[1]:
-                if m_info["status"] == "Paid":
-                    st.markdown("<span class='badge-paid'>PAID ✓</span>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<span class='badge-pending'>PENDING ⚠️</span>", unsafe_allow_html=True)
-            with cols[2]:
-                if m_info["status"] == "Paid":
-                    if st.button("Download Receipt", key=f"rec_{selected_tenant_room}_{month_name}"):
-                        receipt_text = f"""
+        if not room_data["history"]:
+            st.info("No billing history found for this room yet. Generate a bill from Owner Dashboard.")
+        else:
+            for month_name, m_info in room_data["history"].items():
+                cols = st.columns([3, 1, 1])
+                with cols[0]:
+                    st.markdown(f"**{month_name}**<br><span style='color: #94A3B8; font-size: 13px;'>Total Invoice Amount: ₹{m_info['total']}</span>", unsafe_allow_html=True)
+                with cols[1]:
+                    if m_info["status"] == "Paid":
+                        st.markdown("<span class='badge-paid'>PAID ✓</span>", unsafe_allow_html=True)
+                    else:
+                        st.markdown("<span class='badge-pending'>PENDING ⚠️</span>", unsafe_allow_html=True)
+                with cols[2]:
+                    if m_info["status"] == "Paid":
+                        if st.button("Download Receipt", key=f"rec_{selected_tenant_room}_{month_name}"):
+                            receipt_text = f"""
 ========================================
       RENT MANAGER OFFICIAL RECEIPT    
 ========================================
@@ -361,24 +395,24 @@ UPI ID Used  : 7211197425.upi.circle@ibl
 Receipt ID   : {m_info['receipt']}
 Date of Issue: {date.today()}
 ========================================
-                        """
-                        st.download_button("📥 Save PDF/TXT", data=receipt_text, file_name=f"Receipt_{month_name.replace(' ', '_')}.txt", key=f"dl_{selected_tenant_room}_{month_name}")
-                else:
-                    if st.button("Pay Now Securely", key=f"pay_{selected_tenant_room}_{month_name}"):
-                        st.session_state[f"active_pay_{selected_tenant_room}_{month_name}"] = True
+                            """
+                            st.download_button("📥 Save PDF/TXT", data=receipt_text, file_name=f"Receipt_{month_name.replace(' ', '_')}.txt", key=f"dl_{selected_tenant_room}_{month_name}")
+                    else:
+                        if st.button("Pay Now Securely", key=f"pay_{selected_tenant_room}_{month_name}"):
+                            st.session_state[f"active_pay_{selected_tenant_room}_{month_name}"] = True
 
-            if st.session_state.get(f"active_pay_{selected_tenant_room}_{month_name}", False):
-                if st.button("✅ Confirm Payment & Update DB", key=f"sim_action_{selected_tenant_room}_{month_name}"):
-                    room_data["history"][month_name]["status"] = "Paid"
-                    if month_name == list(room_data["history"].keys())[-1]:
-                        room_data["history"][month_name]["total"] = total_with_late
-                    room_data["history"][month_name]["receipt"] = f"REC-{selected_tenant_room}-{month_name[:3].upper()}"
-                    sync_to_db()
-                    st.session_state[f"active_pay_{selected_tenant_room}_{month_name}"] = False
-                    st.success("Payment saved to database successfully!")
-                    st.rerun()
+                if st.session_state.get(f"active_pay_{selected_tenant_room}_{month_name}", False):
+                    if st.button("✅ Confirm Payment & Update DB", key=f"sim_action_{selected_tenant_room}_{month_name}"):
+                        room_data["history"][month_name]["status"] = "Paid"
+                        if month_name == list(room_data["history"].keys())[-1]:
+                            room_data["history"][month_name]["total"] = total_with_late
+                        room_data["history"][month_name]["receipt"] = f"REC-{selected_tenant_room}-{month_name[:3].upper()}"
+                        sync_to_db()
+                        st.session_state[f"active_pay_{selected_tenant_room}_{month_name}"] = False
+                        st.success("Payment saved to database successfully!")
+                        st.rerun()
 
-            st.markdown("<hr style='border-color: rgba(255,255,255,0.05);'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color: rgba(255,255,255,0.05);'>", unsafe_allow_html=True)
 
     elif tenant_menu == "🛠️ Maintenance & Issues":
         st.markdown("### 🛠️ Raise Maintenance Ticket")
@@ -454,12 +488,22 @@ else:
             if submitted_occupy:
                 if t_name.strip() and len(t_phone) == 10:
                     st.session_state.rooms[r_to_assign].update({
-                        "status": "Occupied", "tenant": t_name, "phone": t_phone,
-                        "security_deposit": t_deposit, "rent": t_rent, "light": t_light, "maint": t_maint
+                        "status": "Occupied", 
+                        "tenant": t_name, 
+                        "phone": t_phone,
+                        "security_deposit": t_deposit, 
+                        "rent": t_rent, 
+                        "light": t_light, 
+                        "maint": t_maint,
+                        "emergency_contact": "",
+                        "doc": None,
+                        "owner_doc": None,
+                        "history": {}
                     })
+                    st.session_state.complaints = [c for c in st.session_state.complaints if c["room"] != r_to_assign]
                     sync_to_db()
                     st.session_state.assigning_room = None
-                    st.success("Room updated & saved to database!")
+                    st.success("New tenant assigned successfully! Room database wiped clean with fresh ledger.")
                     st.rerun()
                 else:
                     st.error("Provide a valid name and 10-digit phone number.")
@@ -475,6 +519,7 @@ else:
         st.markdown("<p style='font-size:11px; color:#94A3B8; margin-top:-5px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
         st.markdown("---")
         
+        st.markdown("<p style='font-size: 13px; font-weight: bold; color: #94A3B8; margin-top: 10px; letter-spacing: 1px;'>NAVIGATION</p>", unsafe_allow_html=True)
         owner_menu = st.radio(
             "Owner Navigation",
             ["📈 Portfolio Overview & Actions", "⚡ Make Bill / Add Bill", "📇 Tenant Directory"],
