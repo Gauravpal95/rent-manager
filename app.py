@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🗄️ 2. HYBRID DATABASE ENGINE (TinyDB Local Backup + Session State)
+# 🗄️ 2. HYBRID DATABASE ENGINE (TinyDB Local Backup)
 # ==========================================
 db_file = "rent_manager_db.json"
 local_db = TinyDB(db_file)
@@ -162,12 +162,15 @@ if "assigning_room" not in st.session_state: st.session_state.assigning_room = N
 if "move_out_requests" not in st.session_state: st.session_state.move_out_requests = []
 
 # ==========================================
-# 🔐 4. SECURE AUTHENTICATION & OWNER REGISTRATION
+# 🔐 4. SECURE AUTHENTICATION & EXPANDABLE REGISTRATION
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #34D399; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; margin-top: 5px; margin-bottom: 5px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.05rem; margin-bottom: 25px;'>The Elite Property & Tenant Ecosystem (TinyDB Persistent Storage)</p>", unsafe_allow_html=True)
+    
+    # 🌟 Restored Main Big Titles
+    st.markdown("<h1 style='text-align: center; color: #FFFFFF; font-size: 3rem; margin-bottom: 0;'>🏢 RENT MANAGER</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.15rem; margin-top: 5px; margin-bottom: 30px;'>The Elite Property & Tenant Ecosystem</p>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
@@ -199,6 +202,7 @@ if not st.session_state.logged_in:
                     st.error("Invalid Password! Please check correct role password.")
         st.markdown('</div>', unsafe_allow_html=True)
 
+        # 🌟 Login के ठीक नीचे छोटा सा एक्सपैंडर लिंक (New Property Owner Registration)
         with st.expander("🏢 New Property Owner? Click here to Register"):
             with st.form("owner_register_form"):
                 reg_name = st.text_input("Full Name", placeholder="e.g. Gaurav Pal")
