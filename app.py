@@ -152,6 +152,11 @@ st.markdown("""
     .badge-paid { background-color: rgba(6, 78, 59, 0.7); color: #34D399; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(52, 211, 153, 0.4); }
     .badge-pending { background-color: rgba(127, 29, 29, 0.7); color: #F87171; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid rgba(248, 113, 113, 0.4); }
     .badge-status { background-color: rgba(30, 58, 138, 0.7); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(96, 165, 250, 0.4); }
+    
+    /* Custom Red Danger Button styling */
+    div.stButton > button[kind="secondary"] {
+        border-color: rgba(248, 113, 113, 0.4);
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -168,7 +173,6 @@ if not st.session_state.logged_in:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #34D399; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; margin-top: 5px; margin-bottom: 5px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
     
-    # 🌟 Restored Main Big Titles
     st.markdown("<h1 style='text-align: center; color: #FFFFFF; font-size: 3rem; margin-bottom: 0;'>🏢 RENT MANAGER</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.15rem; margin-top: 5px; margin-bottom: 30px;'>The Elite Property & Tenant Ecosystem</p>", unsafe_allow_html=True)
 
@@ -202,7 +206,6 @@ if not st.session_state.logged_in:
                     st.error("Invalid Password! Please check correct role password.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 🌟 Login के ठीक नीचे छोटा सा एक्सपैंडर लिंक (New Property Owner Registration)
         with st.expander("🏢 New Property Owner? Click here to Register"):
             with st.form("owner_register_form"):
                 reg_name = st.text_input("Full Name", placeholder="e.g. Gaurav Pal")
@@ -528,37 +531,105 @@ else:
         st.markdown("<hr style='border-color: rgba(52,211,153,0.2); margin: 25px 0;'>", unsafe_allow_html=True)
         st.markdown("### 🏢 Managed Property Portfolio Overview")
         
-        for r_name, r_info in st.session_state.rooms.items():
-            status_color = "rgba(6, 78, 59, 0.6)" if r_info["status"] == "Occupied" else "rgba(127, 29, 29, 0.6)"
-            status_text_color = "#34D399" if r_info["status"] == "Occupied" else "#F87171"
-            
-            st.markdown(f"""
-            <div class="card" style="padding: 20px;">
-                <h3>{r_name} — <span style="color: {status_text_color};">{r_info['status']}</span></h3>
-                <p><b>Tenant:</b> {r_info['tenant']} | <b>Deposit:</b> ₹{r_info.get('security_deposit', 0)}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            new_status = st.selectbox(f"Modify Status ({r_name})", ["Occupied", "Vacant"], index=0 if r_info["status"] == "Occupied" else 1, key=f"sb_{r_name}")
-            if new_status != r_info["status"]:
-                if new_status == "Occupied":
-                    st.session_state.assigning_room = r_name
-                    st.rerun()
-                else:
-                    r_info.update({"status": "Vacant", "tenant": "None Assigned", "phone": "", "security_deposit": 0})
-                    sync_to_db()
-                    st.rerun()
+        room_items = list(st.session_state.rooms.items())
+        for i in range(0, len(room_items), 2):
+            cols = st.columns(2)
+            for j in range(2):
+                if i + j < len(room_items):
+                    r_name, r_info = room_items[i + j]
+                    with cols[j]:
+                        status_color = "rgba(6, 78, 59, 0.6)" if r_info["status"] == "Occupied" else "rgba(127, 29, 29, 0.6)"
+                        status_text_color = "#34D399" if r_info["status"] == "Occupied" else "#F87171"
+                        
+                        st.markdown(f"""
+                        <div class="card" style="padding: 20px; min-height: 160px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="margin: 0; color: #FFFFFF; font-size: 18px;">{r_name}</h3>
+                                <span style="background-color: {status_color}; color: {status_text_color}; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold;">{r_info['status']}</span>
+                            </div>
+                            <p style="margin: 4px 0; font-size: 13px;"><b>Tenant:</b> {r_info['tenant']}</p>
+                            <p style="margin: 4px 0; font-size: 13px;"><b>Deposit:</b> ₹{r_info.get('security_deposit', 0)}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        new_status = st.selectbox(f"Modify Status ({r_name})", ["Occupied", "Vacant"], index=0 if r_info["status"] == "Occupied" else 1, key=f"sb_{r_name}")
+                        if new_status != r_info["status"]:
+                            if new_status == "Occupied":
+                                st.session_state.assigning_room = r_name
+                                st.rerun()
+                            else:
+                                r_info.update({"status": "Vacant", "tenant": "None Assigned", "phone": "", "security_deposit": 0})
+                                sync_to_db()
+                                st.rerun()
+
+        st.markdown("---")
+        st.markdown("### 🛠️ Central Maintenance & Complaint Desk")
+        if not st.session_state.complaints:
+            st.info("No active maintenance tickets from any tenant.")
+        else:
+            for idx, c in enumerate(st.session_state.complaints):
+                col_c1, col_c2 = st.columns([3, 1])
+                with col_c1:
+                    st.markdown(f"""
+                    <div class="card" style="padding: 15px; margin-bottom: 10px;">
+                        <span style="color: #94A3B8; font-size: 12px;">Ticket #{c['id']} | Room: {c['room']} | Tenant: {c['tenant']}</span><br>
+                        <b>Issue:</b> {c['desc']}
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_c2:
+                    new_ticket_status = st.selectbox(
+                        f"Update Status for Ticket #{c['id']}", 
+                        ["Open", "In Progress", "Resolved"], 
+                        index=["Open", "In Progress", "Resolved"].index(c['status']),
+                        key=f"ticket_status_{c['id']}"
+                    )
+                    if new_ticket_status != c['status']:
+                        c['status'] = new_ticket_status
+                        sync_to_db()
+                        st.rerun()
 
     elif owner_menu == "📇 Tenant Directory":
         st.markdown("### 📇 Master Tenant Directory & Database Sync")
+        
         tenant_list = []
         for r_name, r_data in st.session_state.rooms.items():
             if r_data["status"] == "Occupied":
                 tenant_list.append({
-                    "Room No.": r_name, "Tenant Name": r_data["tenant"], 
-                    "Primary Phone": r_data["phone"], "Deposit": f"₹{r_data.get('security_deposit', 0)}"
+                    "Room No.": r_name, 
+                    "Tenant Name": r_data["tenant"], 
+                    "Primary Phone": r_data["phone"], 
+                    "Deposit": f"₹{r_data.get('security_deposit', 0)}"
                 })
+        
         if tenant_list:
-            st.dataframe(pd.DataFrame(tenant_list), use_container_width=True)
+            for t_item in tenant_list:
+                col_d1, col_d2 = st.columns([4, 1])
+                with col_d1:
+                    st.markdown(f"""
+                    <div class="card" style="padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="color: #34D399; font-weight: bold; font-size: 16px;">{t_item['Room No.']}</span> — <b>{t_item['Tenant Name']}</b><br>
+                            <span style="color: #94A3B8; font-size: 13px;">Phone: {t_item['Primary Phone']} | Deposit: {t_item['Deposit']}</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_d2:
+                    st.write("") # alignment spacing
+                    # 🌟 Red Highlighted Danger Button to Remove Tenant
+                    if st.button("🗑️ Remove Tenant", key=f"del_tenant_{t_item['Room No.']}", help="Warning: This will clear tenant data and mark room vacant."):
+                        room_key = t_item['Room No.']
+                        if room_key in st.session_state.rooms:
+                            st.session_state.rooms[room_key].update({
+                                "status": "Vacant",
+                                "tenant": "None Assigned",
+                                "phone": "",
+                                "security_deposit": 0,
+                                "emergency_contact": "",
+                                "doc": None,
+                                "owner_doc": None
+                            })
+                            sync_to_db()
+                            st.success(f"Tenant from {room_key} removed successfully! Room marked vacant.")
+                            st.rerun()
         else:
-            st.info("No active tenants in database.")
+            st.info("No active tenants currently reside in the property.")
