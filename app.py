@@ -79,6 +79,20 @@ if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "role" not in st.session_state: st.session_state.role = ""
 if "assigning_room" not in st.session_state: st.session_state.assigning_room = None
 
+# Secure Passwords Store (Separate for Owner and Tenant)
+if "passwords" not in st.session_state:
+    st.session_state.passwords = {
+        "owner": "owner123",
+        "tenant": "tenant123"
+    }
+
+if "owner_profile" not in st.session_state:
+    st.session_state.owner_profile = {
+        "name": "Default Owner",
+        "phone": "9876543210",
+        "address": "Binary Boys Elite Apartments, Surat"
+    }
+
 if "rooms" not in st.session_state:
     st.session_state.rooms = {
         "Room 101": {
@@ -128,7 +142,7 @@ if "late_fee_rule" not in st.session_state:
 
 
 # ==========================================
-# 🔐 4. SECURE PASSWORD AUTHENTICATION (CLEAN LOGIN)
+# 🔐 4. SECURE AUTHENTICATION & OWNER REGISTRATION
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -137,28 +151,62 @@ if not st.session_state.logged_in:
 
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("<h1 style='color: #34D399; font-weight: 900; font-size: 2rem; margin-bottom: 15px; text-align: center;'>RENT MANAGER</h1>", unsafe_allow_html=True)
-        st.subheader("🔒 Secure Login Gateway")
+        auth_tab1, auth_tab2 = st.tabs(["🔒 Secure Login", "🏢 Become an Owner (Register)"])
         
-        with st.form("combined_auth_form"):
-            portal_choice = st.selectbox("Select Portal Mode", ["Tenant Portal", "Owner Dashboard"])
-            password_input = st.text_input("Enter Portal Password", type="password", placeholder="Enter admin123")
+        with auth_tab1:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("Login Gateway")
             
-            st.markdown("<p style='font-size: 12px; color: #94A3B8; margin-top: 5px;'>💡 Default Password: <b>admin123</b></p>", unsafe_allow_html=True)
+            with st.form("combined_auth_form"):
+                portal_choice = st.selectbox("Select Portal Mode", ["Tenant Portal", "Owner Dashboard"])
+                password_input = st.text_input("Enter Portal Password", type="password", placeholder="Enter password")
+                
+                st.markdown("""
+                <div style='font-size: 11px; color: #94A3B8; margin-top: 5px;'>
+                    💡 Default Passwords:<br>
+                    • Owner: <b>owner123</b><br>
+                    • Tenant: <b>tenant123</b>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                submit_login = st.form_submit_button("Authenticate & Enter", use_container_width=True)
+                
+                if submit_login:
+                    correct_pwd = st.session_state.passwords["owner"] if portal_choice == "Owner Dashboard" else st.session_state.passwords["tenant"]
+                    if password_input == correct_pwd:
+                        st.session_state.logged_in = True
+                        st.session_state.role = portal_choice
+                        st.success("Login Successful!")
+                        st.rerun()
+                    else:
+                        st.error("Invalid Password! Please check correct role password.")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with auth_tab2:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("Property Owner Registration")
             
-            submit_login = st.form_submit_button("Authenticate & Enter", use_container_width=True)
-            
-            if submit_login:
-                if password_input == "admin123":
-                    st.session_state.logged_in = True
-                    st.session_state.role = portal_choice
-                    st.success("Login Successful!")
-                    st.rerun()
-                else:
-                    st.error("Invalid Password. Please enter 'admin123'.")
-                    
-        st.markdown('</div>', unsafe_allow_html=True)
+            with st.form("owner_register_form"):
+                reg_name = st.text_input("Full Name", placeholder="e.g. Gaurav Pal")
+                reg_phone = st.text_input("Phone Number", placeholder="9876543210")
+                reg_address = st.text_input("Property Address", placeholder="e.g. Elite Heights, Surat")
+                reg_password = st.text_input("Set Custom Owner Password", type="password", placeholder="Set secure password")
+                
+                submit_reg = st.form_submit_button("Register Property & Owner", use_container_width=True)
+                
+                if submit_reg:
+                    if reg_name.strip() and len(reg_phone) == 10 and reg_password.strip():
+                        st.session_state.owner_profile = {
+                            "name": reg_name,
+                            "phone": reg_phone,
+                            "address": reg_address
+                        }
+                        st.session_state.passwords["owner"] = reg_password
+                        st.success("🎉 Registration Successful! You can now login using your custom owner password.")
+                    else:
+                        st.error("Please fill in valid details (10-digit phone number & password required).")
+            st.markdown('</div>', unsafe_allow_html=True)
+
     st.stop()
 
 
@@ -415,8 +463,9 @@ else:
         st.stop()
 
     with st.sidebar:
-        st.markdown("### 🏢 RENT MANAGER")
-        st.markdown("<p style='font-size:11px; color:#34D399; margin-top:-10px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
+        st.markdown(f"### 🏢 RENT MANAGER")
+        st.markdown(f"<p style='font-size:12px; color:#34D399; margin:0;'>Owner: {st.session_state.owner_profile['name']}</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:11px; color:#94A3B8; margin-top:-5px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
         st.markdown("---")
         
         st.markdown("<p style='font-size: 12px; color: #94A3B8;'>OWNER DASHBOARD</p>", unsafe_allow_html=True)
@@ -656,7 +705,7 @@ else:
                     "Room No.": r_name, 
                     "Tenant Name": r_data["tenant"], 
                     "Primary Phone": r_data["phone"], 
-                    "Emergency Contact": r_data.get("emergency_contact", "Not Provided"),
+                    "Emergency Contact": r_data.get("emergency_contract", "Not Provided"),
                     "Deposit": f"₹{r_data.get('security_deposit', 0)}",
                     "ID Document": r_data["doc"] or "Pending",
                     "Lease Status": "Verified" if r_data.get("owner_doc") else "Pending"
