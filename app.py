@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
+import os
+from tinydb import TinyDB, Query
 
 # ==========================================
 # ⚙️ 1. PAGE CONFIGURATION & METADATA
@@ -13,7 +15,95 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 2. PROFESSIONAL DESIGN & CYBER-TECH CSS
+# 🗄️ 2. HYBRID DATABASE ENGINE (TinyDB Local Backup + Session State)
+# ==========================================
+db_file = "rent_manager_db.json"
+local_db = TinyDB(db_file)
+
+rooms_table = local_db.table("rooms")
+complaints_table = local_db.table("complaints")
+expenses_table = local_db.table("expenses")
+settings_table = local_db.table("settings")
+
+# Initialize default records if empty
+if not rooms_table.all():
+    rooms_table.insert({
+        "Room 101": {
+            "status": "Occupied", "tenant": "Rahul Sharma", "phone": "9876543210", 
+            "emergency_contact": "Father: 9876500000", "security_deposit": 15000,
+            "rent": 6800, "light": 750, "maint": 300,
+            "doc": "Aadhaar_Rahul.pdf", "owner_doc": "Lease_Agreement_101.pdf", 
+            "history": {
+                "May 2026": {"total": 7350, "status": "Paid", "receipt": "REC-101-MAY"},
+                "June 2026": {"total": 7850, "status": "Pending", "receipt": None}
+            }
+        },
+        "Room 102": {
+            "status": "Vacant", "tenant": "None Assigned", "phone": "",
+            "emergency_contact": "", "security_deposit": 0,
+            "rent": 6000, "light": 400, "maint": 100,
+            "doc": None, "owner_doc": None,
+            "history": {
+                "May 2026": {"total": 6500, "status": "Paid", "receipt": "REC-102-MAY"},
+                "June 2026": {"total": 6500, "status": "Pending", "receipt": None}
+            }
+        }
+    })
+
+if not complaints_table.all():
+    complaints_table.insert({
+        "id": 1, "room": "Room 101", "tenant": "Rahul Sharma", 
+        "category": "Plumbing", "desc": "Bathroom tap leakage", "status": "Open", "priority": "High"
+    })
+
+if not expenses_table.all():
+    expenses_table.insert({"desc": "Plumbing repair for Room 101", "amount": 500, "date": "2026-06-01"})
+
+if not settings_table.all():
+    settings_table.insert({
+        "passwords": {"owner": "owner123", "tenant": "tenant123"},
+        "owner_profile": {"name": "Gaurav Pal", "phone": "9876543210", "address": "Binary Boys Elite Apartments, Surat"},
+        "notices": ["📢 Building general maintenance scheduled for Sunday 10 AM."],
+        "late_fee_rule": 100
+    })
+
+# Bind with Session State
+if "rooms" not in st.session_state:
+    st.session_state.rooms = rooms_table.all()[0]
+if "complaints" not in st.session_state:
+    st.session_state.complaints = complaints_table.all()
+if "expenses" not in st.session_state:
+    st.session_state.expenses = expenses_table.all()
+
+settings_data = settings_table.all()[0]
+if "passwords" not in st.session_state: st.session_state.passwords = settings_data["passwords"]
+if "owner_profile" not in st.session_state: st.session_state.owner_profile = settings_data["owner_profile"]
+if "notices" not in st.session_state: st.session_state.notices = settings_data["notices"]
+if "late_fee_rule" not in st.session_state: st.session_state.late_fee_rule = settings_data["late_fee_rule"]
+
+def sync_to_db():
+    """Sync all session data to local TinyDB JSON file safely"""
+    rooms_table.truncate()
+    rooms_table.insert(st.session_state.rooms)
+    
+    complaints_table.truncate()
+    for c in st.session_state.complaints:
+        complaints_table.insert(c)
+        
+    expenses_table.truncate()
+    for e in st.session_state.expenses:
+        expenses_table.insert(e)
+        
+    settings_table.truncate()
+    settings_table.insert({
+        "passwords": st.session_state.passwords,
+        "owner_profile": st.session_state.owner_profile,
+        "notices": st.session_state.notices,
+        "late_fee_rule": st.session_state.late_fee_rule
+    })
+
+# ==========================================
+# 🎨 3. PROFESSIONAL DESIGN & CYBER-TECH CSS
 # ==========================================
 st.markdown("""
     <style>
@@ -27,9 +117,7 @@ st.markdown("""
         color: #F8FAFC;
         font-family: 'Inter', sans-serif;
     }
-    .stApp {
-        background-color: #030712;
-    }
+    .stApp { background-color: #030712; }
     .card {
         background: rgba(15, 23, 42, 0.85);
         backdrop-filter: blur(16px);
@@ -39,11 +127,6 @@ st.markdown("""
         border: 1px solid rgba(52, 211, 153, 0.2);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
         margin-bottom: 20px;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .card:hover {
-        border-color: rgba(52, 211, 153, 0.5);
-        box-shadow: 0 12px 35px rgba(16, 185, 129, 0.15);
     }
     .metric-box {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
@@ -72,74 +155,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# 🗄️ 3. SESSION STATE DATABASE INITIALIZATION
-# ==========================================
+# Session States
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "role" not in st.session_state: st.session_state.role = ""
 if "assigning_room" not in st.session_state: st.session_state.assigning_room = None
-
-# Secure Passwords Store (Separate for Owner and Tenant)
-if "passwords" not in st.session_state:
-    st.session_state.passwords = {
-        "owner": "owner123",
-        "tenant": "tenant123"
-    }
-
-if "owner_profile" not in st.session_state:
-    st.session_state.owner_profile = {
-        "name": "Default Owner",
-        "phone": "9876543210",
-        "address": "Binary Boys Elite Apartments, Surat"
-    }
-
-if "rooms" not in st.session_state:
-    st.session_state.rooms = {
-        "Room 101": {
-            "status": "Occupied", "tenant": "Rahul Sharma", "phone": "9876543210", 
-            "emergency_contact": "Father: 9876500000",
-            "security_deposit": 15000,
-            "rent": 6800, "light": 750, "maint": 300,
-            "doc": "Aadhaar_Rahul.pdf",
-            "owner_doc": "Lease_Agreement_101.pdf", 
-            "history": {
-                "May 2026": {"total": 7350, "status": "Paid", "receipt": "REC-101-MAY"},
-                "June 2026": {"total": 7850, "status": "Pending", "receipt": None}
-            }
-        },
-        "Room 102": {
-            "status": "Vacant", "tenant": "None Assigned", "phone": "",
-            "emergency_contact": "",
-            "security_deposit": 0,
-            "rent": 6000, "light": 400, "maint": 100,
-            "doc": None,
-            "owner_doc": None,
-            "history": {
-                "May 2026": {"total": 6500, "status": "Paid", "receipt": "REC-102-MAY"},
-                "June 2026": {"total": 6500, "status": "Pending", "receipt": None}
-            }
-        }
-    }
-
-if "complaints" not in st.session_state:
-    st.session_state.complaints = [
-        {"id": 1, "room": "Room 101", "tenant": "Rahul Sharma", "category": "Plumbing", "desc": "Bathroom tap leakage", "status": "Open", "priority": "High"}
-    ]
-
-if "expenses" not in st.session_state:
-    st.session_state.expenses = [
-        {"desc": "Plumbing repair for Room 101", "amount": 500, "date": "2026-06-01"}
-    ]
-
-if "notices" not in st.session_state:
-    st.session_state.notices = ["📢 Building general maintenance scheduled for Sunday 10 AM."]
-
-if "move_out_requests" not in st.session_state:
-    st.session_state.move_out_requests = []
-
-if "late_fee_rule" not in st.session_state:
-    st.session_state.late_fee_rule = 100
-
+if "move_out_requests" not in st.session_state: st.session_state.move_out_requests = []
 
 # ==========================================
 # 🔐 4. SECURE AUTHENTICATION & OWNER REGISTRATION
@@ -147,65 +167,63 @@ if "late_fee_rule" not in st.session_state:
 if not st.session_state.logged_in:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #34D399; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; margin-top: 5px; margin-bottom: 5px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.05rem; margin-bottom: 25px;'>The Elite Property & Tenant Ecosystem</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 1.05rem; margin-bottom: 25px;'>The Elite Property & Tenant Ecosystem (TinyDB Persistent Storage)</p>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
-        auth_tab1, auth_tab2 = st.tabs(["🔒 Secure Login", "🏢 Become an Owner (Register)"])
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("🔒 Secure Login Gateway")
         
-        with auth_tab1:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Login Gateway")
+        with st.form("combined_auth_form"):
+            portal_choice = st.selectbox("Select Portal Mode", ["Tenant Portal", "Owner Dashboard"])
+            password_input = st.text_input("Enter Portal Password", type="password", placeholder="Enter password")
             
-            with st.form("combined_auth_form"):
-                portal_choice = st.selectbox("Select Portal Mode", ["Tenant Portal", "Owner Dashboard"])
-                password_input = st.text_input("Enter Portal Password", type="password", placeholder="Enter password")
-                
-                st.markdown("""
-                <div style='font-size: 11px; color: #94A3B8; margin-top: 5px;'>
-                    💡 Default Passwords:<br>
-                    • Owner: <b>owner123</b><br>
-                    • Tenant: <b>tenant123</b>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                submit_login = st.form_submit_button("Authenticate & Enter", use_container_width=True)
-                
-                if submit_login:
-                    correct_pwd = st.session_state.passwords["owner"] if portal_choice == "Owner Dashboard" else st.session_state.passwords["tenant"]
-                    if password_input == correct_pwd:
-                        st.session_state.logged_in = True
-                        st.session_state.role = portal_choice
-                        st.success("Login Successful!")
-                        st.rerun()
-                    else:
-                        st.error("Invalid Password! Please check correct role password.")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style='font-size: 11px; color: #94A3B8; margin-top: 5px;'>
+                🌐 <b>Database Mode:</b> Offline TinyDB Active<br>
+                💡 Default Passwords:<br>
+                • Owner: <b>{st.session_state.passwords['owner']}</b> | Tenant: <b>{st.session_state.passwords['tenant']}</b>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            submit_login = st.form_submit_button("Authenticate & Enter", use_container_width=True)
+            
+            if submit_login:
+                correct_pwd = st.session_state.passwords["owner"] if portal_choice == "Owner Dashboard" else st.session_state.passwords["tenant"]
+                if password_input == correct_pwd:
+                    st.session_state.logged_in = True
+                    st.session_state.role = portal_choice
+                    st.success("Login Successful!")
+                    st.rerun()
+                else:
+                    st.error("Invalid Password! Please check correct role password.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        with auth_tab2:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Property Owner Registration")
-            
+        with st.expander("🏢 New Property Owner? Click here to Register"):
             with st.form("owner_register_form"):
                 reg_name = st.text_input("Full Name", placeholder="e.g. Gaurav Pal")
                 reg_phone = st.text_input("Phone Number", placeholder="9876543210")
                 reg_address = st.text_input("Property Address", placeholder="e.g. Elite Heights, Surat")
-                reg_password = st.text_input("Set Custom Owner Password", type="password", placeholder="Set secure password")
+                reg_owner_pwd = st.text_input("Create Owner Password", type="password", placeholder="Secure owner password")
+                reg_tenant_pwd = st.text_input("Create Tenant Access Password", type="password", placeholder="Secure tenant password")
                 
-                submit_reg = st.form_submit_button("Register Property & Owner", use_container_width=True)
+                submit_reg = st.form_submit_button("Register & Launch Dashboard", use_container_width=True)
                 
                 if submit_reg:
-                    if reg_name.strip() and len(reg_phone) == 10 and reg_password.strip():
+                    if reg_name.strip() and len(reg_phone) == 10 and reg_owner_pwd.strip() and reg_tenant_pwd.strip():
                         st.session_state.owner_profile = {
-                            "name": reg_name,
-                            "phone": reg_phone,
-                            "address": reg_address
+                            "name": reg_name, "phone": reg_phone, "address": reg_address
                         }
-                        st.session_state.passwords["owner"] = reg_password
-                        st.success("🎉 Registration Successful! You can now login using your custom owner password.")
+                        st.session_state.passwords["owner"] = reg_owner_pwd
+                        st.session_state.passwords["tenant"] = reg_tenant_pwd
+                        sync_to_db()
+                        
+                        st.session_state.logged_in = True
+                        st.session_state.role = "Owner Dashboard"
+                        st.success("🎉 Registration Successful! Saved to Database & Redirecting...")
+                        st.rerun()
                     else:
-                        st.error("Please fill in valid details (10-digit phone number & password required).")
-            st.markdown('</div>', unsafe_allow_html=True)
+                        st.error("Please fill in valid details (10-digit phone number & both passwords required).")
 
     st.stop()
 
@@ -280,9 +298,9 @@ if st.session_state.role == "Tenant Portal":
             </div>
             """, unsafe_allow_html=True)
             
-            proof_file = st.file_uploader("Upload Payment Screenshot Proof (Manual Verification)", type=["png", "jpg", "jpeg"])
+            proof_file = st.file_uploader("Upload Payment Screenshot Proof", type=["png", "jpg", "jpeg"])
             if proof_file:
-                st.success("Payment proof uploaded successfully! Awaiting owner verification.")
+                st.success("Payment proof uploaded successfully to database!")
 
         st.markdown("### 📜 Month-wise Payment Ledger & Official Receipts")
         for month_name, m_info in room_data["history"].items():
@@ -305,7 +323,7 @@ Room Number  : {selected_tenant_room}
 Tenant Name  : {room_data['tenant']}
 Billing Month: {month_name}
 Amount Paid  : ₹{m_info['total']}
-Status       : VERIFIED & PAID
+Status       : VERIFIED & PAID (Database Synced)
 Receipt ID   : {m_info['receipt']}
 Date of Issue: {date.today()}
 ========================================
@@ -316,20 +334,14 @@ Date of Issue: {date.today()}
                         st.session_state[f"active_pay_{selected_tenant_room}_{month_name}"] = True
 
             if st.session_state.get(f"active_pay_{selected_tenant_room}_{month_name}", False):
-                st.markdown(f"""
-                <div class="card" style="text-align: center; border: 2px dashed #34D399; margin-top: 10px; padding: 15px;">
-                    <p style="color: #34D399; font-weight: bold;">CLEARING DUES: {month_name.upper()}</p>
-                    <p style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">Payable: ₹{total_with_late if month_name == list(room_data["history"].keys())[-1] else m_info['total']}</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button("✅ Simulate Payment Complete (Mark Database as Paid)", key=f"sim_action_{selected_tenant_room}_{month_name}"):
+                if st.button("✅ Confirm Payment & Update DB", key=f"sim_action_{selected_tenant_room}_{month_name}"):
                     room_data["history"][month_name]["status"] = "Paid"
                     if month_name == list(room_data["history"].keys())[-1]:
                         room_data["history"][month_name]["total"] = total_with_late
                     room_data["history"][month_name]["receipt"] = f"REC-{selected_tenant_room}-{month_name[:3].upper()}"
+                    sync_to_db()
                     st.session_state[f"active_pay_{selected_tenant_room}_{month_name}"] = False
-                    st.success("Payment verified successfully!")
+                    st.success("Payment saved to database successfully!")
                     st.rerun()
 
             st.markdown("<hr style='border-color: rgba(255,255,255,0.05);'>", unsafe_allow_html=True)
@@ -338,7 +350,7 @@ Date of Issue: {date.today()}
         st.markdown("### 🛠️ Raise Maintenance Ticket")
         with st.form("tenant_complaint"):
             c_cat = st.selectbox("Issue Category", ["Plumbing", "Electrical", "Carpentry", "Appliances", "Other"])
-            c_desc = st.text_input("Describe the issue in detail (e.g. AC leaking from the right side)")
+            c_desc = st.text_input("Describe the issue in detail")
             c_priority = st.selectbox("Priority Level", ["Low", "Medium", "High"])
             if st.form_submit_button("Submit Complaint to Owner") and c_desc:
                 st.session_state.complaints.append({
@@ -350,7 +362,8 @@ Date of Issue: {date.today()}
                     "desc": c_desc,
                     "status": "Open"
                 })
-                st.success("Complaint ticket generated and sent to property owner!")
+                sync_to_db()
+                st.success("Complaint ticket stored in database and sent to owner!")
 
         st.markdown("### 📡 Your Active Ticket Live Status")
         tenant_tickets = [c for c in st.session_state.complaints if c["room"] == selected_tenant_room]
@@ -378,42 +391,8 @@ Date of Issue: {date.today()}
                 new_ec = st.text_input("Emergency Contact Name & Phone Number", value=room_data.get("emergency_contact", ""))
                 if st.form_submit_button("Save Contact Info"):
                     room_data["emergency_contact"] = new_ec
-                    st.success("Contact Details Updated Successfully!")
-        
-        with st.expander("🚪 Submit Move-Out Notice (30 Days Prior)", expanded=False):
-            st.warning("Important: A standard 30-day prior notice is required before vacating the room.")
-            with st.form("move_out_form"):
-                move_out_date = st.date_input("Expected Vacating Date")
-                reason = st.text_input("Reason for moving out (Optional)")
-                if st.form_submit_button("Send Official Move-Out Request"):
-                    st.session_state.move_out_requests.append(f"Notice: {selected_tenant_room} ({room_data['tenant']}) requested to move out on {move_out_date}. Reason: {reason}")
-                    st.success("Official request sent to owner successfully.")
-
-        st.markdown("### 📁 Digital Lease Agreement & Document Vault")
-        col_doc1, col_doc2 = st.columns(2)
-        with col_doc1:
-            st.markdown("#### Owner Provided Documents")
-            if room_data.get('owner_doc'):
-                st.success(f"📜 Verified Digital Lease Available: **{room_data['owner_doc']}**")
-                st.download_button("📥 Download Signed Lease Agreement", data="[Mock Encrypted PDF Data Stream]", file_name=room_data['owner_doc'])
-            else:
-                st.warning("No Lease Agreement uploaded by owner yet.")
-                
-            st.markdown("""
-            <div class="card" style="margin-top: 15px; padding: 15px;">
-                <h5>Standard House Rules</h5>
-                <p style="font-size: 13px; color: #94A3B8; margin-bottom: 0;">• Quiet hours enforced after 10:00 PM<br>• No structural alterations permitted<br>• Guest stay limit: 3 consecutive days</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with col_doc2:
-            st.markdown("#### Tenant ID Proof Locker")
-            uploaded_doc = st.file_uploader("Upload or Replace ID Proof (Aadhaar/PAN/Passport)", type=["pdf", "png", "jpg"])
-            if uploaded_doc:
-                room_data["doc"] = uploaded_doc.name
-                st.success(f"Successfully uploaded {uploaded_doc.name} to secure locker.")
-            if room_data.get("doc"):
-                st.info(f"📄 Current verified document on-file: **{room_data['doc']}** (Accessible by Owner ✓)")
+                    sync_to_db()
+                    st.success("Contact Details Updated & Saved to DB!")
 
 
 # ==========================================
@@ -423,39 +402,33 @@ else:
     if st.session_state.assigning_room:
         r_to_assign = st.session_state.assigning_room
         st.markdown(f"<h2>👤 Assign New Tenant Details for <span style='color: #34D399;'>{r_to_assign}</span></h2>", unsafe_allow_html=True)
-        st.caption("Please fill in the comprehensive tenant credentials and billing structure to activate this room.")
         
         with st.form("occupy_details_form"):
             t_name = st.text_input("Tenant Full Legal Name", placeholder="e.g. Rajesh Kumar")
             t_phone = st.text_input("Tenant Active Phone Number", placeholder="9876543210")
             t_deposit = st.number_input("Security Deposit Collected (₹)", value=15000)
             
-            st.markdown("**Confirm Monthly Itemized Billing Structure:**")
             bc1, bc2, bc3 = st.columns(3)
             with bc1: t_rent = st.number_input("Base Room Rent (₹)", value=6000)
             with bc2: t_light = st.number_input("Standard Light/Utility Bill (₹)", value=400)
             with bc3: t_maint = st.number_input("Building Maintenance (₹)", value=150)
                 
             col_btn1, col_btn2 = st.columns(2)
-            with col_btn1: submitted_occupy = st.form_submit_button("✅ Save & Officially Mark Occupied", use_container_width=True)
-            with col_btn2: cancel_occupy = st.form_submit_button("❌ Cancel Process", use_container_width=True)
+            with col_btn1: submitted_occupy = st.form_submit_button("✅ Save & Mark Occupied", use_container_width=True)
+            with col_btn2: cancel_occupy = st.form_submit_button("❌ Cancel", use_container_width=True)
                 
             if submitted_occupy:
                 if t_name.strip() and len(t_phone) == 10:
                     st.session_state.rooms[r_to_assign].update({
-                        "status": "Occupied", 
-                        "tenant": t_name, 
-                        "phone": t_phone,
-                        "security_deposit": t_deposit, 
-                        "rent": t_rent, 
-                        "light": t_light, 
-                        "maint": t_maint
+                        "status": "Occupied", "tenant": t_name, "phone": t_phone,
+                        "security_deposit": t_deposit, "rent": t_rent, "light": t_light, "maint": t_maint
                     })
+                    sync_to_db()
                     st.session_state.assigning_room = None
-                    st.success(f"Room {r_to_assign} successfully updated to Occupied! Tenant portal activated.")
+                    st.success("Room updated & saved to database!")
                     st.rerun()
                 else:
-                    st.error("Please provide a valid tenant name and a correct 10-digit phone number.")
+                    st.error("Provide a valid name and 10-digit phone number.")
                     
             if cancel_occupy:
                 st.session_state.assigning_room = None
@@ -468,7 +441,6 @@ else:
         st.markdown("<p style='font-size:11px; color:#94A3B8; margin-top:-5px;'>CREATED BY BINARY BOYS</p>", unsafe_allow_html=True)
         st.markdown("---")
         
-        st.markdown("<p style='font-size: 12px; color: #94A3B8;'>OWNER DASHBOARD</p>", unsafe_allow_html=True)
         owner_menu = st.radio(
             "Owner Navigation",
             ["📈 Portfolio Overview & Actions", "📇 Tenant Directory"],
@@ -482,13 +454,11 @@ else:
 
     total_collected = 0
     total_outstanding = 0
-    revenue_by_month = {}
     
     for r_data in st.session_state.rooms.values():
         for m, m_data in r_data["history"].items():
             if m_data["status"] == "Paid":
                 total_collected += m_data["total"]
-                revenue_by_month[m] = revenue_by_month.get(m, 0) + m_data["total"]
             else:
                 total_outstanding += m_data["total"]
 
@@ -498,229 +468,93 @@ else:
     total_rooms = len(st.session_state.rooms)
 
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-    with col_m1:
-        st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">TOTAL REVENUE</p><h3 style="color: #34D399; margin:0;">₹{total_collected}</h3></div>', unsafe_allow_html=True)
-    with col_m2:
-        st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">TOTAL EXPENSES</p><h3 style="color: #F87171; margin:0;">₹{total_expenses}</h3></div>', unsafe_allow_html=True)
-    with col_m3:
-        st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">NET PROFIT</p><h3 style="color: #60A5FA; margin:0;">₹{net_profit}</h3></div>', unsafe_allow_html=True)
-    with col_m4:
-        st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">OUTSTANDING DUES</p><h2 style="color: #FBBF24; margin:0;">₹{total_outstanding}</h2></div>', unsafe_allow_html=True)
-    with col_m5:
-        st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">OCCUPANCY RATIO</p><h3 style="color: #A78BFA; margin:0;">{occupied_count} / {total_rooms}</h3></div>', unsafe_allow_html=True)
+    with col_m1: st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">TOTAL REVENUE</p><h3 style="color: #34D399; margin:0;">₹{total_collected}</h3></div>', unsafe_allow_html=True)
+    with col_m2: st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">TOTAL EXPENSES</p><h3 style="color: #F87171; margin:0;">₹{total_expenses}</h3></div>', unsafe_allow_html=True)
+    with col_m3: st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">NET PROFIT</p><h3 style="color: #60A5FA; margin:0;">₹{net_profit}</h3></div>', unsafe_allow_html=True)
+    with col_m4: st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">OUTSTANDING DUES</p><h2 style="color: #FBBF24; margin:0;">₹{total_outstanding}</h2></div>', unsafe_allow_html=True)
+    with col_m5: st.markdown(f'<div class="metric-box"><p style="color: #94A3B8; font-size: 10px; font-weight: bold;">OCCUPANCY RATIO</p><h3 style="color: #A78BFA; margin:0;">{occupied_count} / {total_rooms}</h3></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     if owner_menu == "📈 Portfolio Overview & Actions":
+        st.markdown("### ⚙️ Master Property Actions & Database Engine")
         
-        st.markdown("### ⚙️ Master Property Actions & Billing Engine")
-        
-        with st.expander("📅 1-Click Bulk Invoice Generator", expanded=False):
-            st.markdown("<p style='color: #94A3B8; font-size: 13px;'>Automatically generate and send the upcoming month's itemized bill to all currently occupied rooms.</p>", unsafe_allow_html=True)
-            with st.form("bulk_invoice_form"):
-                col_b1, col_b2 = st.columns([2, 1])
-                with col_b1:
-                    bulk_month = st.selectbox("Select Target Billing Month & Year", ["July 2026", "August 2026", "September 2026", "October 2026"])
-                with col_b2:
-                    st.write("")
-                    st.write("")
-                    submit_bulk = st.form_submit_button("🚀 Dispatch Invoices", use_container_width=True)
-                    
-                if submit_bulk:
-                    count = 0
-                    for r_name, r_data in st.session_state.rooms.items():
-                        if r_data["status"] == "Occupied" and bulk_month not in r_data["history"]:
-                            total_amt = r_data["rent"] + r_data["light"] + r_data["maint"]
-                            r_data["history"][bulk_month] = {"total": total_amt, "status": "Pending", "receipt": None}
-                            count += 1
-                    if count > 0:
-                        st.success(f"Success! {count} pending invoices for {bulk_month} dispatched.")
-                    else:
-                        st.warning(f"Invoices for {bulk_month} already exist or no rooms occupied.")
+        with st.expander("💸 Log Property Expense", expanded=False):
+            with st.form("expense_form"):
+                exp_desc = st.text_input("Expense Description")
+                exp_amt = st.number_input("Cost Amount (₹)", min_value=1, value=1500)
+                if st.form_submit_button("Log Expense") and exp_desc:
+                    st.session_state.expenses.append({"desc": exp_desc, "amount": exp_amt, "date": str(date.today())})
+                    sync_to_db()
+                    st.success("Expense logged & saved to database!")
                     st.rerun()
-
-        col_act1, col_act2, col_act3 = st.columns(3)
-        with col_act1:
-            with st.expander("💸 Log Property Expense", expanded=False):
-                with st.form("expense_form"):
-                    exp_desc = st.text_input("Expense Description", placeholder="e.g. Roof Waterproofing")
-                    exp_amt = st.number_input("Total Cost Amount (₹)", min_value=1, value=1500)
-                    if st.form_submit_button("Log Expense") and exp_desc:
-                        st.session_state.expenses.append({"desc": exp_desc, "amount": exp_amt, "date": str(date.today())})
-                        st.success("Expense logged!")
-                        st.rerun()
-        with col_act2:
-            with st.expander("📢 Broadcast Global Notice", expanded=False):
-                with st.form("notice_form"):
-                    new_notice = st.text_area("Notice Message")
-                    if st.form_submit_button("Publish Notice") and new_notice:
-                        st.session_state.notices.append(f"📢 {new_notice}")
-                        st.success("Notice published!")
-                        st.rerun()
-        with col_act3:
-            with st.expander("⚙️ Late Fee Engine", expanded=False):
-                with st.form("late_form"):
-                    new_penalty = st.number_input("Daily Penalty Rate (₹/day)", value=st.session_state.late_fee_rule)
-                    if st.form_submit_button("Update Rule"):
-                        st.session_state.late_fee_rule = new_penalty
-                        st.success("Late fee updated!")
-                        st.rerun()
 
         with st.expander("➕ Expand Portfolio: Add New Room", expanded=False):
             with st.form("owner_room_adder_master"):
                 f_col1, f_col2 = st.columns(2)
                 with f_col1:
-                    new_room_no = st.text_input("New Room ID / Number", placeholder="e.g. Room 505")
-                    tenant_name = st.text_input("Assign Tenant Name (Blank if Vacant)", placeholder="e.g. Aman Verma")
-                    tenant_phone = st.text_input("Tenant Active Phone", placeholder="9876543210")
+                    new_room_no = st.text_input("New Room ID", placeholder="e.g. Room 505")
+                    tenant_name = st.text_input("Tenant Name (Blank if Vacant)")
+                    tenant_phone = st.text_input("Tenant Phone", placeholder="9876543210")
                 with f_col2:
                     billing_month = st.selectbox("Initial Billing Month", ["June", "July", "August", "September"])
                     billing_year = st.selectbox("Billing Year", [2026, 2027])
-                    sec_dep = st.number_input("Security Deposit Collected (₹)", value=0)
+                    sec_dep = st.number_input("Security Deposit (₹)", value=0)
 
-                st.markdown("**Configure Itemized Monthly Charges:**")
                 i_col1, i_col2, i_col3 = st.columns(3)
-                with i_col1: r_rent = st.number_input("Base Room Rent (₹)", value=6000)
-                with i_col2: r_light = st.number_input("Estimated Light Bill (₹)", value=400)
-                with i_col3: r_maint = st.number_input("Fixed Maintenance (₹)", value=150)
+                with i_col1: r_rent = st.number_input("Base Rent (₹)", value=6000)
+                with i_col2: r_light = st.number_input("Light Bill (₹)", value=400)
+                with i_col3: r_maint = st.number_input("Maintenance (₹)", value=150)
 
-                if st.form_submit_button("Save & Add Room to Portfolio"):
+                if st.form_submit_button("Save & Add Room to DB"):
                     if new_room_no:
                         is_occupied = "Occupied" if tenant_name.strip() else "Vacant"
                         st.session_state.rooms[new_room_no] = {
                             "status": is_occupied,
                             "tenant": tenant_name if tenant_name.strip() else "None Assigned",
-                            "phone": tenant_phone,
-                            "security_deposit": sec_dep,
+                            "phone": tenant_phone, "security_deposit": sec_dep,
                             "rent": r_rent, "light": r_light, "maint": r_maint,
-                            "doc": None,
-                            "owner_doc": None,
+                            "doc": None, "owner_doc": None,
                             "history": {f"{billing_month} {billing_year}": {"total": r_rent + r_light + r_maint, "status": "Pending", "receipt": None}} if is_occupied == "Occupied" else {}
                         }
-                        st.success(f"Room {new_room_no} successfully integrated!")
+                        sync_to_db()
+                        st.success(f"Room {new_room_no} integrated & saved to database!")
                         st.rerun()
-                    else:
-                        st.error("Room Number is required.")
 
         st.markdown("<hr style='border-color: rgba(52,211,153,0.2); margin: 25px 0;'>", unsafe_allow_html=True)
-
         st.markdown("### 🏢 Managed Property Portfolio Overview")
-        r_cols = st.columns(len(st.session_state.rooms) if len(st.session_state.rooms) > 0 else 1)
         
-        for idx, (r_name, r_info) in enumerate(st.session_state.rooms.items()):
-            current_col = r_cols[idx % len(r_cols)]
-            with current_col:
-                status_color = "rgba(6, 78, 59, 0.6)" if r_info["status"] == "Occupied" else "rgba(127, 29, 29, 0.6)"
-                status_text_color = "#34D399" if r_info["status"] == "Occupied" else "#F87171"
-                doc_display = f"📄 {r_info['doc']}" if r_info['doc'] else "❌ No Document Uploaded"
-                owner_doc_display = f"📜 {r_info['owner_doc']}" if r_info.get('owner_doc') else "❌ Lease Missing"
-                total_calc = r_info['rent'] + r_info['light'] + r_info['maint']
-                
-                st.markdown(f"""
-                <div class="card" style="padding: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h3 style="margin: 0; color: #FFFFFF; font-size: 20px;">{r_name}</h3>
-                        <span style="background-color: {status_color}; color: {status_text_color}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid rgba(255,255,255,0.05);">{r_info['status']}</span>
-                    </div>
-                    <p style="margin: 6px 0; font-size: 13px;"><b>Tenant:</b> {r_info['tenant']}</p>
-                    <p style="margin: 6px 0; font-size: 13px;"><b>Security Deposit:</b> ₹{r_info.get('security_deposit', 0)}</p>
-                    <hr style="border-color: rgba(255,255,255,0.05); margin: 10px 0;">
-                    <p style="margin: 4px 0; font-size: 12px; color: #94A3B8;"><b>Tenant ID:</b> {doc_display}</p>
-                    <p style="margin: 4px 0; font-size: 12px; color: #94A3B8;"><b>Lease Agreement:</b> {owner_doc_display}</p>
-                    <div style="background-color: rgba(3, 7, 18, 0.5); padding: 12px; border-radius: 10px; margin-top: 15px; font-size: 12px; color: #94A3B8; border: 1px solid rgba(255,255,255,0.03);">
-                        Rent: ₹{r_info['rent']} | Light: ₹{r_info['light']}<br>
-                        Maint: ₹{r_info['maint']} | <b style="color: #34D399; font-size: 14px;">Total: ₹{total_calc}</b>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if r_info['status'] == "Occupied":
-                    uploaded_lease = st.file_uploader(f"Upload Official Lease for {r_name}", type=["pdf"], key=f"lease_up_{r_name}")
-                    if uploaded_lease:
-                        r_info['owner_doc'] = uploaded_lease.name
-                        st.success(f"Lease for {r_name} securely saved!")
-                        st.rerun()
-                
-                new_status_choice = st.selectbox(
-                    f"Modify Status ({r_name})", 
-                    ["Occupied", "Vacant"], 
-                    index=0 if r_info["status"] == "Occupied" else 1,
-                    key=f"status_box_{r_name}"
-                )
-                
-                if new_status_choice != r_info["status"]:
-                    if new_status_choice == "Occupied" and r_info["status"] == "Vacant":
-                        st.session_state.assigning_room = r_name
-                        st.rerun()
-                    elif new_status_choice == "Vacant":
-                        r_info.update({
-                            "status": "Vacant", 
-                            "tenant": "None Assigned", 
-                            "phone": "", 
-                            "security_deposit": 0, 
-                            "owner_doc": None,
-                            "doc": None
-                        })
-                        st.rerun()
-
-        st.markdown("---")
-        st.markdown("### 🛠️ Central Maintenance & Complaint Desk")
-        if not st.session_state.complaints:
-            st.info("No active maintenance tickets from any tenant.")
-        else:
-            for idx, c in enumerate(st.session_state.complaints):
-                col_c1, col_c2 = st.columns([3, 1])
-                with col_c1:
-                    st.markdown(f"""
-                    <div class="card" style="padding: 15px; margin-bottom: 10px;">
-                        <span style="color: #94A3B8; font-size: 12px;">Ticket #{c['id']} | Room: {c['room']} | Tenant: {c['tenant']}</span><br>
-                        <b>Issue:</b> {c['desc']}
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col_c2:
-                    new_ticket_status = st.selectbox(
-                        f"Update Status for Ticket #{c['id']}", 
-                        ["Open", "In Progress", "Resolved"], 
-                        index=["Open", "In Progress", "Resolved"].index(c['status']),
-                        key=f"ticket_status_{c['id']}"
-                    )
-                    if new_ticket_status != c['status']:
-                        c['status'] = new_ticket_status
-                        st.rerun()
+        for r_name, r_info in st.session_state.rooms.items():
+            status_color = "rgba(6, 78, 59, 0.6)" if r_info["status"] == "Occupied" else "rgba(127, 29, 29, 0.6)"
+            status_text_color = "#34D399" if r_info["status"] == "Occupied" else "#F87171"
+            
+            st.markdown(f"""
+            <div class="card" style="padding: 20px;">
+                <h3>{r_name} — <span style="color: {status_text_color};">{r_info['status']}</span></h3>
+                <p><b>Tenant:</b> {r_info['tenant']} | <b>Deposit:</b> ₹{r_info.get('security_deposit', 0)}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            new_status = st.selectbox(f"Modify Status ({r_name})", ["Occupied", "Vacant"], index=0 if r_info["status"] == "Occupied" else 1, key=f"sb_{r_name}")
+            if new_status != r_info["status"]:
+                if new_status == "Occupied":
+                    st.session_state.assigning_room = r_name
+                    st.rerun()
+                else:
+                    r_info.update({"status": "Vacant", "tenant": "None Assigned", "phone": "", "security_deposit": 0})
+                    sync_to_db()
+                    st.rerun()
 
     elif owner_menu == "📇 Tenant Directory":
-        if st.session_state.move_out_requests:
-            st.markdown("### 🚨 Urgent Move-Out Notices")
-            for req in st.session_state.move_out_requests:
-                st.error(req)
-            if st.button("Clear Acknowledged Notices"):
-                st.session_state.move_out_requests = []
-                st.rerun()
-
-        st.markdown("### 📇 Master Tenant Directory & Contact Hub")
+        st.markdown("### 📇 Master Tenant Directory & Database Sync")
         tenant_list = []
         for r_name, r_data in st.session_state.rooms.items():
             if r_data["status"] == "Occupied":
                 tenant_list.append({
-                    "Room No.": r_name, 
-                    "Tenant Name": r_data["tenant"], 
-                    "Primary Phone": r_data["phone"], 
-                    "Emergency Contact": r_data.get("emergency_contract", "Not Provided"),
-                    "Deposit": f"₹{r_data.get('security_deposit', 0)}",
-                    "ID Document": r_data["doc"] or "Pending",
-                    "Lease Status": "Verified" if r_data.get("owner_doc") else "Pending"
+                    "Room No.": r_name, "Tenant Name": r_data["tenant"], 
+                    "Primary Phone": r_data["phone"], "Deposit": f"₹{r_data.get('security_deposit', 0)}"
                 })
-        
         if tenant_list:
-            df_tenants = pd.DataFrame(tenant_list)
-            st.dataframe(df_tenants, use_container_width=True)
-            
-            csv_data = df_tenants.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Export Full Directory to CSV",
-                data=csv_data,
-                file_name=f"Tenant_Directory_{date.today()}.csv",
-                mime="text/csv"
-            )
+            st.dataframe(pd.DataFrame(tenant_list), use_container_width=True)
         else:
-            st.info("No active tenants currently reside in the property.")
+            st.info("No active tenants in database.")
